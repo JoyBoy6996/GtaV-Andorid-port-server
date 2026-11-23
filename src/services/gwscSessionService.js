@@ -69,6 +69,21 @@ export function destroyGwscSession(token) {
 }
 
 /**
+ * Removes every in-memory Gwsc session belonging to a user. Used when an
+ * account logs out of all devices (POST /gwsc/api/logout-all).
+ */
+export function destroyGwscSessionsByUserId(userId) {
+  if (!userId) {
+    return;
+  }
+  for (const [token, session] of sessions.entries()) {
+    if (session.userId === userId) {
+      sessions.delete(token);
+    }
+  }
+}
+
+/**
  * Mints the game launch ticket expected by the Android client:
  * the response of POST /gwsc/api/game-launch must contain a `ticket` value
  * matching ^[A-Za-z0-9_-]{43}$.
