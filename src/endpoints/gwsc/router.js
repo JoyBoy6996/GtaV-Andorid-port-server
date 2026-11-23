@@ -83,7 +83,7 @@ export const getGwscInfoHandler = async (_req, res) => {
     });
   } catch (error) {
     console.error("Gwsc info error:", error);
-    return res.status(500).json({ error: "Failed to load server info" });
+    return res.status(500).json({ error: error?.message || "Failed to load server info" });
   }
 };
 
@@ -142,7 +142,7 @@ export const loginGwscHandler = async (req, res) => {
     });
   } catch (error) {
     console.error("Gwsc login error:", error);
-    return res.status(500).json({ error: "Login failed" });
+    return res.status(500).json({ error: error?.message || "Login failed" });
   }
 };
 
