@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load private key from file
+// Load private key from file, generating a new key pair if it is missing
 const privateKeyPath = path.join(__dirname, '..', '..', 'certs', 'relay', 'relay_private_key.pem');
 const publicKeyPath = path.join(__dirname, '..', '..', 'certs', 'relay', 'relay_public_key.txt');
 let privateKey = null;
@@ -14,8 +14,17 @@ let privateKey = null;
 try {
   privateKey = fs.readFileSync(privateKeyPath, 'utf8');
 } catch (error) {
-  console.warn('Warning: relay_private_key.pem not found. Relay signatures will not work.');
-  console.warn('Run generate_relay_keys.js to create a new key pair.');
+  console.warn('relay_private_key.pem not found. Generating a new relay key pair...');
+  const { privateKey: generatedPrivateKey, publicKey } = crypto.generateKeyPairSync('ec', {
+    namedCurve: 'prime256v1', // P-256 curve
+    publicKeyEncoding: { type: 'spki', format: 'der' },
+    privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+  });
+  const relayDir = path.join(__dirname, '..', '..', 'certs', 'relay');
+  fs.mkdirSync(relayDir, { recursive: true });
+  fs.writeFileSync(privateKeyPath, generatedPrivateKey, { mode: 0o600 });
+  fs.writeFileSync(publicKeyPath, Buffer.from(publicKey).toString('base64'));
+  privateKey = generatedPrivateKey;
 }
 
 // Public key (base64) - can be shared publicly
