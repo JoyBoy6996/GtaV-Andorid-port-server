@@ -78,6 +78,7 @@ import { leaderboardReadByCrewsHandler } from "./endpoints/clans/leaderboardRead
 import { getCrewEmblemHandler } from "./endpoints/clans/getCrewEmblem.js";
 import { setPrimaryClanHandler } from "./endpoints/clans/setPrimaryClan.js";
 import { createTicketNP3AuthTokenHandler } from "./endpoints/auth/PS4/createTicketNp3.js";
+import { GwscRouter } from "./endpoints/gwsc/router.js";
 
 export const prisma = new PrismaClient();
 
@@ -606,7 +607,9 @@ ClansRouter.post("/GetDesc", encryptDecryptMiddleware, getDescHandler);
 app.post('/gta5/11/gameservices/Leaderboards.asmx/ReadByCrews', encryptDecryptMiddleware, leaderboardReadByCrewsHandler);
 //Friends Router
 export const FriendsRouter = express.Router();
-FriendsRouter.post("/GetFriends", (req, res) => {});
+FriendsRouter.post("/GetFriends", (req, res) => {
+  res.send('<?xml version="1.0" encoding="utf-8"?> <Response ms="0"> <Status>1</Status> </Response>');
+});
 
 //Geolocation Router
 const GeoLocationRouter = express.Router();
@@ -848,6 +851,12 @@ app.use("/gta5/11/gameservices/socialclub.asmx", SocialClubRouter);
 app.use("/gta5/11/gameservices/telemetry.asmx", TelemetryRouter);
 app.use("/gta5/11/gameservices/ugc.asmx", UGCRouter);
 app.use('/gta5/11/gameservices/SaveMigrationSingleplayer.asmx', SingleplayerSaveMigrationRouter);
+
+//Friends
+app.use("/gta5/11/gameservices/Friends.asmx", FriendsRouter);
+
+//GTA Online Gwsc JSON backend used by the Android port client (com.thegwchr.fuzzy)
+app.use("/gwsc/api", GwscRouter);
 
 const httpServer = http.createServer(app);
 let matchmakingStarted = false;
