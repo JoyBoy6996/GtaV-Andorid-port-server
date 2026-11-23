@@ -10,9 +10,11 @@ const __dirname = path.dirname(__filename);
 const privateKeyPath = path.join(__dirname, '..', '..', 'certs', 'relay', 'relay_private_key.pem');
 const publicKeyPath = path.join(__dirname, '..', '..', 'certs', 'relay', 'relay_public_key.txt');
 let privateKey = null;
+let publicKeyBase64 = null;
 
 try {
   privateKey = fs.readFileSync(privateKeyPath, 'utf8');
+  publicKeyBase64 = fs.existsSync(publicKeyPath) ? fs.readFileSync(publicKeyPath, 'utf8').trim() : null;
 } catch (error) {
   console.warn('relay_private_key.pem not found. Generating a new relay key pair...');
   const { privateKey: generatedPrivateKey, publicKey } = crypto.generateKeyPairSync('ec', {
@@ -20,17 +22,20 @@ try {
     publicKeyEncoding: { type: 'spki', format: 'der' },
     privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
   });
-  const relayDir = path.join(__dirname, '..', '..', 'certs', 'relay');
-  fs.mkdirSync(relayDir, { recursive: true });
-  fs.writeFileSync(privateKeyPath, generatedPrivateKey, { mode: 0o600 });
-  fs.writeFileSync(publicKeyPath, Buffer.from(publicKey).toString('base64'));
   privateKey = generatedPrivateKey;
+  publicKeyBase64 = Buffer.from(publicKey).toString('base64');
+  try {
+    const relayDir = path.join(__dirname, '..', '..', 'certs', 'relay');
+    fs.mkdirSync(relayDir, { recursive: true });
+    fs.writeFileSync(privateKeyPath, generatedPrivateKey, { mode: 0o600 });
+    fs.writeFileSync(publicKeyPath, publicKeyBase64);
+  } catch (writeError) {
+    console.warn('Could not persist relay keys to disk, using in-memory key:', writeError?.message || writeError);
+  }
 }
 
 // Public key (base64) - can be shared publicly
-export const PUBLIC_KEY = fs.existsSync(publicKeyPath)
-  ? fs.readFileSync(publicKeyPath, 'utf8').trim()
-  : '';
+export const PUBLIC_KEY = publicKeyBase64 || '';
 
 /**
  * Convert DER signature to raw format (r||s concatenated)
