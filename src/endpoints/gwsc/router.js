@@ -286,10 +286,17 @@ export const registerGwscHandler = async (req, res) => {
 // POST /gwsc/api/game-launch -> { ticket } (ticket must match ^[A-Za-z0-9_-]{43}$)
 export const gameLaunchGwscHandler = async (req, res) => {
   try {
-    const token = extractLaunchToken(req.body);
+    const token = getBearerToken(req) || extractLaunchToken(req.body);
     const session = getGwscSession(token);
     if (!session) {
       return sendGwscError(res, 401, "session_not_found", "Session not found");
+    }
+    const buildReport = req.body?.buildReport;
+    if (typeof buildReport !== "string" || !buildReport.trim()) {
+      return sendGwscError(res, 400, "invalid_build_report", "buildReport must be a non-empty string");
+    }
+    if (buildReport.length > 512) {
+      return sendGwscError(res, 400, "invalid_build_report", "buildReport is too long");
     }
     const ticket = issueGwscLaunchTicket(session);
     return res.json({ ticket });
