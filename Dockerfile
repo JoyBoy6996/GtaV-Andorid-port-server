@@ -57,4 +57,4 @@ EXPOSE 80
 EXPOSE 443
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD node -e "const s=require('net').connect(Number(process.env.HTTPS_ENDPOINT_PORT || 443),'127.0.0.1');s.setTimeout(4000);s.on('connect',()=>{s.end();process.exit(0)});s.on('timeout',()=>process.exit(1));s.on('error',()=>process.exit(1))"
-CMD ["node", "src/main.js"]
+CMD ["sh", "-c", "npx prisma db push && node ./src/main.js"]
