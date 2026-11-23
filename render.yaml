@@ -1,0 +1,50 @@
+databases:
+  - name: gta5-los-santos-online-db
+    databaseName: lso
+    user: lso
+    plan: free
+
+services:
+  - type: web
+    runtime: node
+    name: gta5-los-santos-online
+    region: oregon
+    plan: free
+    buildCommand: npm install && npx prisma generate
+    startCommand: npx prisma db push && node ./src/main.js
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: POSTGRES_PRISMA_URL
+        fromDatabase:
+          name: gta5-los-santos-online-db
+          property: connectionString
+      - key: POSTGRES_URL_NON_POOLING
+        fromDatabase:
+          name: gta5-los-santos-online-db
+          property: connectionString
+      - key: ENDPOINT_PORT
+        value: "10000"
+      - key: DOMAIN
+        value: gta5-los-santos-online
+      - key: ROS_HOST
+        value: gta5-los-santos-online
+      - key: TLS_ENABLED
+        value: "false"
+      - key: S3_ENDPOINT
+        value: "https://example-account.r2.cloudflarestorage.com"
+      - key: S3_ACCESS_KEY
+        value: "render-test"
+      - key: S3_SECRET_KEY
+        value: "render-test"
+      - key: S3_BUCKET_NAME
+        value: "render-test"
+      - key: S3_UGC_ENDPOINT
+        value: "https://example-account.r2.cloudflarestorage.com"
+      - key: S3_UGC_ACCESS_KEY
+        value: "render-test"
+      - key: S3_UGC_SECRET_KEY
+        value: "render-test"
+      - key: S3_UGC_BUCKET_NAME
+        value: "render-test"
