@@ -8,8 +8,9 @@
  *
  * The launcher (LauncherActivity.requestGameLaunch) mints a 43-char launch
  * ticket via POST /gwsc/api/game-launch and passes it to the native game as
- * `gwscLaunchToken`. The game posts it back as `scAuthToken` / `ticket` in the
- * (RC4-encrypted) form body to exchange it for native credentials.
+ * `gwscLaunchToken`. The native game posts it back as `launchToken` on
+ * CreateTicketSc3 (and as `scAuthToken` / `ticket` on the other .asmx auth
+ * calls) in the RC4-encrypted form body to exchange it for credentials.
  *
  * The native parser (rlRosXmlCreateTicketResponseParser) reads the privilege
  * bitmask from the `Privileges` ATTRIBUTE on <PlayerAccountId>. Privilege 7 is
@@ -131,6 +132,7 @@ function findTicketValue(req) {
     body.authToken ||
     body.token ||
     body.ticket ||
+    body.launchToken ||
     req.query?.scAuthToken ||
     req.query?.token ||
     req.headers['x-gwsc-token'] ||

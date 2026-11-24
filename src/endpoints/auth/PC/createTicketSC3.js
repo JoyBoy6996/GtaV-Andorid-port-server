@@ -1,6 +1,7 @@
 import xml from 'xml';
 import bcrypt from 'bcrypt';
 import { prisma, sendLogMessage } from '../../../main.js';
+import { getGwscSessionByTicket } from '../../../services/gwscSessionService.js';
 import { generateRandomNumber, generateRandomShit } from '../../../utils/account/createAccount.js';
 
 
@@ -71,41 +72,53 @@ function createTicketResponse(data) {
 export const createTicketSC3Handler = async (req, res) => {
     console.log(req.body)
     try {
-        // Validate that both email and password are provided
-        if (!req.body.email || !req.body.password) {
-            console.log("Missing email or password");
-            return res.status(400).send('Bad Request');
+        // SOURCE_CONFIRMED (device log): the launcher passes the 43-char
+        // game-launch ticket to the native game as `launchToken`, and the
+        // native CreateTicketSc3 body contains that token plus `email` but no
+        // password. Authenticate the token through the launcher session first.
+        const launchToken = req.body.launchToken || req.body.ticket;
+        const session = getGwscSessionByTicket(launchToken);
+
+        let user = null;
+        if (session?.userId) {
+            user = await prisma.user.findFirst({ where: { id: session.userId } });
+        } else if (session?.email) {
+            user = await prisma.user.findFirst({ where: { email: session.email } });
         }
 
-        let user = await prisma.user.findFirstOrThrow({
-            where: {
-                PCEmail: req.body.email,
+        if (!user) {
+            // Backward-compatible path for native clients that still post
+            // email + password directly. Launcher-created accounts live in
+            // `email`, while older PC records use `PCEmail`.
+            const rawEmail = String(req.body.email || '').trim();
+            const email = rawEmail.toLowerCase();
+            const password = req.body.password || '';
+            if (!rawEmail || !password) {
+                console.log("Missing email or password");
+                return res.status(400).send('Bad Request');
             }
-        });
-
-        // Validate password
-        if (!user.PCPassword || !(await bcrypt.compare(req.body.password, user.PCPassword))) {
-            console.log("Invalid password");
-            await sendLogMessage(`!! FAILED LOGIN REQUEST FROM PC (Invalid Password) from ${req.body.email} !!`);
-            return res.status(404).send('Not Found');
-        }
-
-        if (user) {
-            
-            // Check if user is banned
-            if (user.banned) {
-                console.log("User is banned")
+            user = await prisma.user.findFirst({
+                where: {
+                    OR: [
+                        { email },
+                        { PCEmail: rawEmail },
+                        { PCEmail: email },
+                    ],
+                },
+            });
+            if (!user || !user.PCPassword || !(await bcrypt.compare(password, user.PCPassword))) {
+                console.log("Invalid password");
+                await sendLogMessage(`!! FAILED LOGIN REQUEST FROM PC (Invalid Password) from ${rawEmail} !!`);
                 return res.status(404).send('Not Found');
             }
+        }
 
-            await sendLogMessage(`Log in request from: ${user.name} PC Name: ${user.name}`)
-
-        } else {
-            console.log("User does not exist")
-            await sendLogMessage(`!! FAILED LOGIN REQUEST FROM PC from ${req.body.email} !!`)
-            // If user doesn't exist, return 404
+        if (user.banned) {
+            console.log("User is banned")
             return res.status(404).send('Not Found');
         }
+
+        await sendLogMessage(`Log in request from: ${user.name} PC Name: ${user.name}`)
 
         if (user) {
             const host = req.get('host').replace('auth-', '');
@@ -141,9 +154,9 @@ export const createTicketSC3Handler = async (req, res) => {
                     age: user.Age,
                     avatarUrl: user.AvatarUrl,
                     countryCode: 'US',
-                    email: user.PCEmail,
+                    email: user.email || user.PCEmail || '',
                     languageCode: "en",
-                    nickname: user.PCNickname || `User${user.RockstarId}`,
+                    nickname: user.PCNickname || user.name || `User${user.RockstarId}`,
                 },
                 // SOURCE_CONFIRMED: privilege 7 is the client's banned flag;
                 // 12/20-27 are unset in the client's own default table. Never
