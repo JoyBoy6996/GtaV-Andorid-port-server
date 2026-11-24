@@ -1,12 +1,11 @@
 import xml from 'xml';
 
 function createPresenceServersXML() {
-    const relayAddress = process.env.RELAY_PUBLIC_ADDRESS;
-    const relayPort = process.env.RELAY_PUBLIC_PORT;
-
-    if (!relayAddress || !relayPort) {
-        throw new Error('RELAY_PUBLIC_ADDRESS and RELAY_PUBLIC_PORT must be configured');
-    }
+    // The native client commits the ROS credentials only after this endpoint
+    // succeeds. A missing relay configuration must not turn sign-in into a 500,
+    // so fall back to the configured public hostname and the conventional port.
+    const relayAddress = process.env.RELAY_PUBLIC_ADDRESS || process.env.ROS_HOST || process.env.DOMAIN;
+    const relayPort = process.env.RELAY_PUBLIC_PORT || '61456';
 
     const servers = [
         { host: `${relayAddress}:${relayPort}` },
@@ -14,7 +13,7 @@ function createPresenceServersXML() {
 
     // Create server entries for XML structure
     const serverEntries = servers.map(server => ({
-        Server: [{ _attr: { Host: server.host, isSecure: 'false', IsXblSg: 'false' } }]
+        Server: [{ _attr: { Host: server.host, IsSecure: 'false', IsXblSg: 'false' } }]
     }));
 
     const xmlStructure = [
