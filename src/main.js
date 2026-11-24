@@ -48,6 +48,7 @@ import { PresenceAttributesClient } from "./utils/presence/presenceUtils.js";
 import axios from "axios";
 import { createTicketSC3Handler } from "./endpoints/auth/PC/createTicketSC3.js";
 import { createSCAuthTokenHandler } from "./endpoints/auth/PC/createSCAuthToken.js";
+import { nativeCreateTicketHandler, nativeScAuthTokenHandler } from "./endpoints/auth/PC/nativeAuth.js";
 import { publishContentHandler } from "./endpoints/ugc/publish.js";
 import { updateContent } from "./endpoints/ugc/updateContent.js";
 import { setDeletedHandler } from "./endpoints/ugc/setDeleted.js";
@@ -538,6 +539,10 @@ AuthRouter.post("/CreateTicketXbl2", encryptDecryptMiddleware, createTicketXBLAu
 AuthRouter.post("/ImpersonateCreateTicketXbl",encryptDecryptMiddleware, impersonateCreateTicketXbl);
 //Create Ticket PC
 AuthRouter.post("/CreateTicketSc3", encryptDecryptMiddleware, createTicketSC3Handler);
+// Native Android ticket exchange (SOURCE_CONFIRMED from libgtav.so): the game
+// posts the launcher's 43-char gwscLaunchToken back as scAuthToken/ticket.
+AuthRouter.post("/CreateTicketScAuthToken", encryptDecryptMiddleware, nativeCreateTicketHandler);
+AuthRouter.post("/CreateTicket", encryptDecryptMiddleware, nativeCreateTicketHandler);
 //Update Ticket PC
 AuthRouter.post("/UpdateTicketSc3", express.urlencoded({ extended: true }), updateTicketSC3Handler);
 
@@ -550,7 +555,10 @@ SocialClubRouter.post("/GetPasswordRequirements", encryptDecryptMiddleware, GetP
 
 SocialClubRouter.post("/CheckText", encryptDecryptMiddleware, FuckingHellRockstarHandler);
 //Create SC Auth Token 
-SocialClubRouter.post("/CreateScAuthToken", encryptDecryptMiddleware, createSCAuthTokenHandler);
+SocialClubRouter.post("/CreateScAuthToken", encryptDecryptMiddleware, nativeScAuthTokenHandler);
+// Native Android SC auth token exchange (SOURCE_CONFIRMED from libgtav.so).
+SocialClubRouter.post("/GetScAuthToken", encryptDecryptMiddleware, nativeScAuthTokenHandler);
+SocialClubRouter.post("/CreateTicketScAuthToken", encryptDecryptMiddleware, nativeCreateTicketHandler);
 
 //Cash Transactions Router
 const CashTranscationsRouter = express.Router();

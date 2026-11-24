@@ -5,41 +5,55 @@ import { generateRandomNumber, generateRandomShit } from '../../../utils/account
 
 
 function createTicketResponse(data) {
+    // SOURCE_CONFIRMED from libgtav.so rlRosXmlCreateTicketResponseParser::Parse:
+    // it first finds the <Result> child, then reads Ticket, SecsUntilExpiration,
+    // Region, PlayerAccountId, DisabledSecurityFlags, SessionId, SessionKey,
+    // SessionTicket, CloudKey, PublicIp, PosixTime, IsSubAccount from inside it.
+    // A sibling <Privileges> element is ignored; the privilege bitmask comes from
+    // the `Privileges` ATTRIBUTE on <PlayerAccountId>. Privilege 7 is the
+    // client's banned flag (HasRosPrivilege(7) -> ACCESS_DENIED_BANNED ->
+    // SC_ERROR_BANNED "permanent ban"), so never grant it.
     return xml(
         {
             Response: [
                 { Status: data.status },
-                { Ticket: data.ticket },
-                { PosixTime: data.posixTime },
-                { SecsUntilExpiration: data.secsUntilExpiration },
-                { PlayerAccountId: data.playerAccountId },
-                { PublicIp: data.publicIp },
-                { SessionId: data.sessionId },
-                { SessionKey: data.sessionKey },
-                { SessionTicket: data.sessionTicket },
-                { CloudKey: data.cloudKey },
-                { MFAEnabled: data.mfaEnabled },
-                { DisabledSecurityFlags: 255 },
                 {
-                    Services: [
-                        { _attr: { Count: data.services.length } },
-                        ...data.services.map((service) => ({
-                            S: { _attr: { ep: service.ep, h: service.h } },
-                        })),
+                    Result: [
+                        { Ticket: data.ticket },
+                        { PosixTime: data.posixTime },
+                        { SecsUntilExpiration: data.secsUntilExpiration },
+                        { Region: 1 },
+                        { PlayerAccountId: { _attr: { Privileges: data.privileges.join(',') }, _content: String(data.playerAccountId) } },
+                        { DisabledSecurityFlags: 0 },
+                        { SessionId: data.sessionId },
+                        { SessionKey: data.sessionKey },
+                        { SessionTicket: data.sessionTicket },
+                        { CloudKey: data.cloudKey },
+                        { PublicIp: data.publicIp },
+                        { IsSubAccount: false },
+                        {
+                            Services: [
+                                { _attr: { Count: data.services.length } },
+                                {
+                                    Hosts: data.services.map((service) => ({
+                                        S: { _attr: { ep: service.ep, h: service.h } },
+                                    })),
+                                },
+                            ],
+                        },
+                        {
+                            RockstarAccount: [
+                                { RockstarId: data.rockstarAccount.rockstarId },
+                                { Age: 25 },
+                                { AvatarUrl: data.rockstarAccount.avatarUrl },
+                                { CountryCode: "US" },
+                                { Email: data.rockstarAccount.email },
+                                { LanguageCode: "en" },
+                                { Nickname: data.rockstarAccount.nickname },
+                            ],
+                        },
                     ],
                 },
-                {
-                    RockstarAccount: [
-                        { RockstarId: data.rockstarAccount.rockstarId },
-                        { Age: 25 },
-                        { AvatarUrl: "https://prod-avatars.akamaized.net/stock-avatars/n/default.png" },
-                        { CountryCode: "US" },
-                        { Email: data.rockstarAccount.email },
-                        { LanguageCode: "en" },
-                        { Nickname: data.rockstarAccount.nickname },
-                    ],
-                },
-                { Privileges: data.privileges.join(',') },
             ],
             _attr: {
                 ['xmlns:xsd']: 'http://www.w3.org/2001/XMLSchema',
@@ -128,7 +142,10 @@ export const createTicketSC3Handler = async (req, res) => {
                     languageCode: "en",
                     nickname: user.PCNickname || `User${user.RockstarId}`,
                 },
-                privileges: [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 21, 22, 23, 24, 25, 26, 27],
+                // SOURCE_CONFIRMED: privilege 7 is the client's banned flag;
+                // 12/20-27 are unset in the client's own default table. Never
+                // grant 7; grant 3 (multiplayer) and 5 (standard access).
+                privileges: [0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 21, 22],
             })
             console.log(ticket)
             res.send(

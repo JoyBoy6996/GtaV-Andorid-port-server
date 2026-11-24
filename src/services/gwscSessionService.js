@@ -61,6 +61,32 @@ export function getGwscSession(token) {
   return session;
 }
 
+/**
+ * Resolve the in-memory Gwsc session that owns a game launch ticket.
+ *
+ * The Android launcher mints this 43-char ticket via POST /gwsc/api/game-launch
+ * and passes it to the native game as `gwscLaunchToken`. The native game posts
+ * it back (as scAuthToken/ticket) when exchanging credentials through the
+ * native .asmx auth endpoints. `issueGwscLaunchTicket` attaches the ticket to
+ * the owning session object, so look it up here.
+ */
+export function getGwscSessionByTicket(ticket) {
+  if (!ticket) {
+    return null;
+  }
+  const now = Date.now();
+  for (const [key, session] of sessions.entries()) {
+    if (session.expiresAt < now) {
+      sessions.delete(key);
+      continue;
+    }
+    if (session.ticket === ticket) {
+      return session;
+    }
+  }
+  return null;
+}
+
 export function destroyGwscSession(token) {
   if (!token) {
     return;
