@@ -37,7 +37,9 @@ function responseXml(children) {
 
 function createTicketXml(user, { ticket, sessionTicket, sessionId }) {
   const privileges = GRANTED_PRIVILEGES.join(',');
-  const host = 'gta-joyboy.myddns.me';
+  // Keep native service hosts aligned with the deployed private server;
+  // never fall back to an official Rockstar host.
+  const host = process.env.ROS_HOST || process.env.DOMAIN || 'gta-joyboy.myddns.me';
   const services = [
     { ep: '*/Accounts.svc/*', h: host },
     { ep: '*/Feed.asmx/*', h: host },

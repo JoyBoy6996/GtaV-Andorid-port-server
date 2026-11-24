@@ -17,7 +17,10 @@ export class RC4Decryptor {
     constructor(encryptedData, sessionKey = null, platform = 'PCROS') {
         this.encryptedData = encryptedData;
         this.blockSize = 1024;
-        this.platformKey = Buffer.from(PLATFORM_KEYS[platform] || PLATFORM_KEYS.PC, 'base64');
+        // Android native ROS identifies itself as pcros. Fall back to PCROS,
+        // not the undefined PLATFORM_KEYS.PC, when the User-Agent cannot be
+        // decoded; an undefined key throws inside res.send and kills responses.
+        this.platformKey = Buffer.from(PLATFORM_KEYS[platform] || PLATFORM_KEYS.PCROS, 'base64');
         //Grab the slices of keys from the current platform key
         this.rc4key = this.platformKey.slice(1, 33);
         this.xorkey = this.platformKey.slice(33, 49);
@@ -84,8 +87,11 @@ function rc4(key, data) {
 }
 
 export class RC4Encryptor {
-    constructor(sessionKey = null, platform = 'PC') {
-        this.platformKey = Buffer.from(PLATFORM_KEYS[platform] || PLATFORM_KEYS.PC, 'base64');
+    constructor(sessionKey = null, platform = 'PCROS') {
+        // Android native ROS identifies itself as pcros. Fall back to PCROS,
+        // not the undefined PLATFORM_KEYS.PC, when the User-Agent cannot be
+        // decoded; an undefined key throws inside res.send and kills responses.
+        this.platformKey = Buffer.from(PLATFORM_KEYS[platform] || PLATFORM_KEYS.PCROS, 'base64');
         this.rc4key = this.platformKey.slice(1, 33); //Also known as master key
         this.xorkey = this.platformKey.slice(33, 49); //Also known as key or http key
         this.hashkey = this.platformKey.slice(49); //Also known as salt

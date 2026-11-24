@@ -541,8 +541,15 @@ AuthRouter.post("/ImpersonateCreateTicketXbl",encryptDecryptMiddleware, imperson
 AuthRouter.post("/CreateTicketSc3", encryptDecryptMiddleware, createTicketSC3Handler);
 // Native Android ticket exchange (SOURCE_CONFIRMED from libgtav.so): the game
 // posts the launcher's 43-char gwscLaunchToken back as scAuthToken/ticket.
+// rlRosHttpTask::GetServicePath can produce either the full
+// /gta5/11/gameservices/... path or a bare auth.asmx/... path, so register
+// both shapes. A 404 here prevents rlRosClient::SetCredentials; the client
+// then falls back to its static privilege table, which marks privilege 7
+// (banned) as present and produces HUD_ROSBANPERM.
 AuthRouter.post("/CreateTicketScAuthToken", encryptDecryptMiddleware, nativeCreateTicketHandler);
 AuthRouter.post("/CreateTicket", encryptDecryptMiddleware, nativeCreateTicketHandler);
+app.post("/auth.asmx/CreateTicketScAuthToken", encryptDecryptMiddleware, nativeCreateTicketHandler);
+app.post("/auth.asmx/CreateTicket", encryptDecryptMiddleware, nativeCreateTicketHandler);
 //Update Ticket PC
 AuthRouter.post("/UpdateTicketSc3", express.urlencoded({ extended: true }), updateTicketSC3Handler);
 
@@ -559,6 +566,10 @@ SocialClubRouter.post("/CreateScAuthToken", encryptDecryptMiddleware, nativeScAu
 // Native Android SC auth token exchange (SOURCE_CONFIRMED from libgtav.so).
 SocialClubRouter.post("/GetScAuthToken", encryptDecryptMiddleware, nativeScAuthTokenHandler);
 SocialClubRouter.post("/CreateTicketScAuthToken", encryptDecryptMiddleware, nativeCreateTicketHandler);
+// Bare-path aliases for the native ROS service-path builder.
+app.post("/socialclub.asmx/CreateScAuthToken", encryptDecryptMiddleware, nativeScAuthTokenHandler);
+app.post("/socialclub.asmx/GetScAuthToken", encryptDecryptMiddleware, nativeScAuthTokenHandler);
+app.post("/socialclub.asmx/CreateTicketScAuthToken", encryptDecryptMiddleware, nativeCreateTicketHandler);
 
 //Cash Transactions Router
 const CashTranscationsRouter = express.Router();
