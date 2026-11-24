@@ -23,7 +23,10 @@ function createTicketResponse(data) {
                         { PosixTime: data.posixTime },
                         { SecsUntilExpiration: data.secsUntilExpiration },
                         { Region: 1 },
-                        { PlayerAccountId: { _attr: { Privileges: data.privileges.join(',') }, _content: String(data.playerAccountId) } },
+                        // `xml` ignores `_content`; an array emits both the
+                        // Privileges attribute and the numeric text required by
+                        // rlRosXmlCreateTicketResponseParser::Parse sscanf("%lld").
+                        { PlayerAccountId: [{ _attr: { Privileges: data.privileges.join(',') } }, String(data.playerAccountId)] },
                         { DisabledSecurityFlags: 0 },
                         { SessionId: data.sessionId },
                         { SessionKey: data.sessionKey },

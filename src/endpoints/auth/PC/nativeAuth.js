@@ -62,9 +62,11 @@ function createTicketXml(user, { ticket, sessionTicket, sessionId }) {
         { PosixTime: String(Math.floor(Date.now() / 1000)) },
         { SecsUntilExpiration: '86399' },
         { Region: '1' },
-        // Privileges must be an ATTRIBUTE on PlayerAccountId; a sibling
-        // <Privileges> element is ignored by the Android parser.
-        { PlayerAccountId: { _attr: { Privileges: privileges }, _content: String(user.RockstarId) } },
+        // Privileges must be an ATTRIBUTE on PlayerAccountId, and the Rockstar
+        // id must be TEXT inside that element. `xml` ignores `_content`; using
+        // an array makes it emit both the attribute and the numeric text that
+        // rlRosXmlCreateTicketResponseParser::Parse feeds to sscanf("%lld").
+        { PlayerAccountId: [{ _attr: { Privileges: privileges } }, String(user.RockstarId)] },
         { DisabledSecurityFlags: '0' },
         { SessionId: String(sessionId) },
         { SessionKey: user.SessionKey || '' },
