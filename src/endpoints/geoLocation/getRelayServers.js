@@ -43,12 +43,10 @@ function generateRelayServerXML(address, port) {
 export const getRelayServersHandler = (req, res) => {
     res.set('Content-Type', 'application/xml');
 
-    const relayAddress = process.env.RELAY_PUBLIC_ADDRESS;
-    const relayPort = process.env.RELAY_PUBLIC_PORT;
-
-    if (!relayAddress || !relayPort) {
-        throw new Error('RELAY_PUBLIC_ADDRESS and RELAY_PUBLIC_PORT must be configured');
-    }
+    // Keep the relay advertisement available when the deployment has not set
+    // the optional relay variables; otherwise session setup receives a 500.
+    const relayAddress = process.env.RELAY_PUBLIC_ADDRESS || process.env.ROS_HOST || process.env.DOMAIN;
+    const relayPort = process.env.RELAY_PUBLIC_PORT || '61456';
 
     // Generate signed relay server
     const relay = generateRelayServer(relayAddress, relayPort);
